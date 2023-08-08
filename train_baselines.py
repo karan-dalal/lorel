@@ -55,7 +55,7 @@ flags.DEFINE_integer('aug', 0,
                      'Data aug')
 flags.DEFINE_integer('langaug', 0,
                      'Language emb aug')
-flags.DEFINE_integer('hidden_size', 128,
+flags.DEFINE_integer('hidden_size', 1024,
                      'Hidden size')
 flags.DEFINE_integer('sawyer', 0,
                      'Using sawyer data')
@@ -63,12 +63,14 @@ flags.DEFINE_integer('scratch', 0,
                      'LM from scratch (not pretrained)')
 flags.DEFINE_float('lr', 0.00001,
                      'learning rate')
-flags.DEFINE_string('wandb_entity', "surajn",
+flags.DEFINE_string('wandb_entity', "ksdalal",
                     'Weights and Biases Entity')
-flags.DEFINE_string('wandb_project', "lang",
+flags.DEFINE_string('wandb_project', "lorel",
                     'Weights and Biases Project')
 flags.DEFINE_integer('rl', 0,
                      '1 for LCRL or 0 for LCBC')
+flags.DEFINE_integer('representation', 'liv', 
+                     'representation model')
 
 def augment(data, augmentation, batchsize):
   """ Augments batch of images """
@@ -133,11 +135,12 @@ def main(argv):
 
   ## Init Model
   hidden_size = FLAGS.hidden_size
+  representation = FLAGS.representation
   ACT_SIZE = 5
   if FLAGS.rl:
     ## QFunction that takes initial state, current state, language, 
     ## action and predicts q val
-    q = QFunc(hidden_size, ACT_SIZE, finetune=FLAGS.finetune).cuda()
+    q = QFunc(hidden_size, representation, ACT_SIZE, finetune=FLAGS.finetune).cuda()
     prms = list(q.parameters())
     target_q = copy.deepcopy(q)
     target_q.eval()

@@ -104,4 +104,4 @@ celerybeat.pid
 # Added
 deps/
 logs/
-
+*.out

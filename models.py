@@ -4,9 +4,12 @@ from torch import jit, nn
 from torch.nn import functional as F
 from PIL import Image
 import numpy as np
+import clip
+import torchvision.transforms as T
 from transformers import AutoTokenizer, AutoModel, AutoConfig
 from torch.distributions.normal import Normal
 from torch.distributions.independent import Independent
+from LIV.liv import load_liv
 
 
 class LangEncoder(nn.Module):
@@ -76,7 +79,6 @@ class Discriminator(nn.Module):
     h = self.sigm(self.fc4(h))
     return h
   
-
 ## Image Encoder
 class Encoder(nn.Module):
   __constants__ = ['embedding_size']
@@ -130,33 +132,55 @@ class Encoder(nn.Module):
     return hidden
   
 class Policy(nn.Module):
-  def __init__(self, hidden_size, act_size, activation_function='relu', finetune = False, langaug=False):
+  def __init__(self, hidden_size, representation, act_size, activation_function='relu', finetune = False, langaug=False):
     super().__init__()
     self.act_fn = getattr(F, activation_function)
     self.sigm = nn.Sigmoid()
     self.dropout = nn.Dropout(0.2)
-    self.senc = LangEncoder(finetune=finetune, aug=langaug)
-    lang_size = self.senc.lang_size
     
-    self.enc =  Encoder(hidden_size, ch = 3)
-    self.fc1 = nn.Linear(lang_size + hidden_size , hidden_size)
+    # NOTE: LoREL encoder and policy architecture.
+    # self.senc = LangEncoder(finetune=finetune, aug=langaug)
+    # lang_size = self.senc.lang_size
+    # self.enc =  Encoder(hidden_size, ch = 3)
+    # self.fc1 = nn.Linear(lang_size + hidden_size , hidden_size)
+    # self.fc2 = nn.Linear(hidden_size, hidden_size)
+    # self.fc3 = nn.Linear(hidden_size, hidden_size)
+    # self.fc4 = nn.Linear(hidden_size, act_size)
+
+    # NOTE: LIV encoder and policy architecture.
+    if representation == 'liv':
+      self.liv = load_liv()
+      self.liv.eval()
+    self.tokenize = clip.tokenize
+
+    self.fc1 = nn.Linear(2 * hidden_size, hidden_size)
     self.fc2 = nn.Linear(hidden_size, hidden_size)
     self.fc3 = nn.Linear(hidden_size, hidden_size)
     self.fc4 = nn.Linear(hidden_size, act_size)
-    
+
   def forward(self, obs, lang_goal):
-    ## Encode sentence
-    lang_emb = self.senc(lang_goal)
-    ## Encode image
-    enc = self.enc(obs)
+
+    # NOTE: LoREL encoder.
+    # lang_emb = self.senc(lang_goal)
+    # enc = self.enc(obs)
+
+    # NOTE: LIV encoder.
+    lang_goal = self.tokenize(lang_goal)
+    lang_emb = self.liv(input=lang_goal, modality="text")
+    enc = self.liv(input=obs, modality="vision")
+
+    # print("LIV Text Shape:", lang_emb.shape, lang_emb.dtype)
+    # print("LIV Image Shape:", enc.shape, enc.dtype)
+
     ## Concatenate and predict action
-    h = torch.cat([enc, lang_emb], dim=-1)
+    h = torch.cat([enc, lang_emb], dim=-1).float()
+    # print("Concatenated Shape:", h.shape, h.dtype)
+
     h = self.dropout(self.act_fn(self.fc1(h)))
     h = self.dropout(self.act_fn(self.fc2(h)))
     h = self.dropout(self.act_fn(self.fc3(h)))
     h = self.fc4(h)
     return h
-
   
 class QFunc(nn.Module):
   def __init__(self, hidden_size, action_size, activation_function='relu', finetune = False, langaug=False):
