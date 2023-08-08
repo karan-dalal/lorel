@@ -38,7 +38,6 @@ class LorlTabletop(SawyerXYZEnv):
         self.cur_path_length = 0
         self.xml = xml
         
-        self.quick_init(locals())
         hand_low=(-0.3, 0.4, 0.0)
         hand_high=(0.3, 0.8, 0.15)
         obj_low=(-0.3, 0.4, 0.1)

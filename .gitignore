@@ -101,3 +101,7 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
+# Added
+deps/
+logs/
+
