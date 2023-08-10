@@ -165,9 +165,10 @@ class Policy(nn.Module):
     # enc = self.enc(obs)
 
     # NOTE: LIV encoder.
-    lang_goal = self.tokenize(lang_goal)
-    lang_emb = self.liv(input=lang_goal, modality="text")
-    enc = self.liv(input=obs, modality="vision")
+    with torch.no_grad():
+      lang_goal = self.tokenize(lang_goal)
+      lang_emb = self.liv(input=lang_goal, modality="text")
+      enc = self.liv(input=obs, modality="vision")
 
     # print("LIV Text Shape:", lang_emb.shape, lang_emb.dtype)
     # print("LIV Image Shape:", enc.shape, enc.dtype)

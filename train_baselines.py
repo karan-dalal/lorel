@@ -61,7 +61,7 @@ flags.DEFINE_integer('sawyer', 0,
                      'Using sawyer data')
 flags.DEFINE_integer('scratch', 0,
                      'LM from scratch (not pretrained)')
-flags.DEFINE_float('lr', 0.00001,
+flags.DEFINE_float('lr', 0.001,
                      'learning rate')
 flags.DEFINE_string('wandb_entity', "ksdalal",
                     'Weights and Biases Entity')
@@ -69,7 +69,7 @@ flags.DEFINE_string('wandb_project', "lorel",
                     'Weights and Biases Project')
 flags.DEFINE_integer('rl', 0,
                      '1 for LCRL or 0 for LCBC')
-flags.DEFINE_integer('representation', 'liv', 
+flags.DEFINE_string('representation', 'liv', 
                      'representation model')
 
 def augment(data, augmentation, batchsize):
@@ -140,7 +140,7 @@ def main(argv):
   if FLAGS.rl:
     ## QFunction that takes initial state, current state, language, 
     ## action and predicts q val
-    q = QFunc(hidden_size, representation, ACT_SIZE, finetune=FLAGS.finetune).cuda()
+    q = QFunc(hidden_size, ACT_SIZE, finetune=FLAGS.finetune).cuda()
     prms = list(q.parameters())
     target_q = copy.deepcopy(q)
     target_q.eval()
@@ -148,7 +148,7 @@ def main(argv):
     gamma = 0.8 
   else:
     ## BC policy which takes current state, language and predicts action
-    p = Policy(hidden_size, ACT_SIZE, finetune=FLAGS.finetune).cuda()
+    p = Policy(hidden_size, representation, ACT_SIZE, finetune=FLAGS.finetune).cuda()
     prms = list(p.parameters())
   optimiser = optim.Adam(prms, lr=FLAGS.lr)
   
