@@ -50,3 +50,18 @@ def load_liv(modelid='resnet50'):
     rep.load_state_dict(state_dict)
     return rep    
 
+def load_clip(modelid='resnet50'):
+    assert modelid == 'resnet50'
+    home = os.path.join(expanduser("~"), ".liv")
+
+    if not os.path.exists(os.path.join(home, modelid)):
+        os.makedirs(os.path.join(home, modelid))
+    folderpath = os.path.join(home, modelid)
+    modelpath = os.path.join(home, modelid, "model.pt")
+    configpath = os.path.join(home, modelid, "config.yaml")
+
+    modelcfg = omegaconf.OmegaConf.load(configpath)
+    cleancfg = cleanup_config(modelcfg)
+    rep = hydra.utils.instantiate(cleancfg)
+    rep = torch.nn.DataParallel(rep)
+    return rep    

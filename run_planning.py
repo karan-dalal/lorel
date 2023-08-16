@@ -25,9 +25,8 @@ import cv2
 from multiprocessing import Pool
 import string
 import tensorflow.compat.v1 as tf
-from tensor2tensor.bin.t2t_decoder import create_hparams
-from tensor2tensor.utils import registry
-
+# from tensor2tensor.bin.t2t_decoder import create_hparams
+# from tensor2tensor.utils import registry
 
 FLAGS = flags.FLAGS
 
@@ -200,7 +199,7 @@ def main(argv):
     d.requires_grad = False
     d.eval()
   elif FLAGS.cost == "bc":
-    p = Policy(hidden_size, ASIZE).cuda()
+    p = Policy(hidden_size, "liv", ASIZE).cuda()
     model_dicts = torch.load(FLAGS.reward_path)
     p.load_state_dict(model_dicts['p'])
     p.requires_grad = False
@@ -215,47 +214,48 @@ def main(argv):
     d = None
   instr = FLAGS.instruction
   
-  if FLAGS.cost in ["lorel", "lpips", "pixel"]:
-    ## Load visual dynamics model
-    homedir = FLAGS.model_path
-    FLAGS.data_dir = homedir + '/data/'
-    FLAGS.output_dir = homedir + '/out/'
-    FLAGS.problem = 'lang_robot'
-    FLAGS.hparams = 'video_num_input_frames=1,video_num_target_frames=20'
-    FLAGS.hparams_set = 'next_frame_sv2p'
-    FLAGS.model = 'next_frame_sv2p'
-    # Create hparams
-    hparams = create_hparams()
-    hparams.video_num_input_frames = 1
-    hparams.video_num_target_frames = 20
+  # NOTE: Remove planning code, incompatible with TF 2.0.
+  # if FLAGS.cost in ["lorel", "lpips", "pixel"]:
+  #   ## Load visual dynamics model
+  #   homedir = FLAGS.model_path
+  #   FLAGS.data_dir = homedir + '/data/'
+  #   FLAGS.output_dir = homedir + '/out/'
+  #   FLAGS.problem = 'lang_robot'
+  #   FLAGS.hparams = 'video_num_input_frames=1,video_num_target_frames=20'
+  #   FLAGS.hparams_set = 'next_frame_sv2p'
+  #   FLAGS.model = 'next_frame_sv2p'
+  #   # Create hparams
+  #   hparams = create_hparams()
+  #   hparams.video_num_input_frames = 1
+  #   hparams.video_num_target_frames = 20
 
-    # Params
-    num_replicas = FLAGS.samples
-    frame_shape = hparams.problem.frame_shape
-    forward_graph = tf.Graph()
-    with forward_graph.as_default():
-      forward_sess = tf.Session()
-      input_size = [num_replicas, hparams.video_num_input_frames]
-      target_size = [num_replicas, hparams.video_num_target_frames]
-      forward_placeholders = {
-          'inputs':
-              tf.placeholder(tf.float32, input_size + frame_shape),
-          'input_action':
-              tf.placeholder(tf.float32, input_size + [ASIZE]),
-          'targets':
-              tf.placeholder(tf.float32, target_size + frame_shape),
-          'target_action':
-              tf.placeholder(tf.float32, target_size + [ASIZE]),
-      }
-      # Creat model
-      forward_model_cls = registry.model(FLAGS.model)
-      forward_model = forward_model_cls(hparams, tf.estimator.ModeKeys.PREDICT)
-      forward_prediction_ops, _ = forward_model(forward_placeholders)
-      forward_saver = tf.train.Saver()
-      forward_saver.restore(forward_sess,
-                            homedir + '/out/model.ckpt-300000')
-      print('LOADED SV2P!')
-      sv2p_model = (forward_prediction_ops, forward_sess, forward_placeholders)
+  #   # Params
+  #   num_replicas = FLAGS.samples
+  #   frame_shape = hparams.problem.frame_shape
+  #   forward_graph = tf.Graph()
+  #   with forward_graph.as_default():
+  #     forward_sess = tf.Session()
+  #     input_size = [num_replicas, hparams.video_num_input_frames]
+  #     target_size = [num_replicas, hparams.video_num_target_frames]
+  #     forward_placeholders = {
+  #         'inputs':
+  #             tf.placeholder(tf.float32, input_size + frame_shape),
+  #         'input_action':
+  #             tf.placeholder(tf.float32, input_size + [ASIZE]),
+  #         'targets':
+  #             tf.placeholder(tf.float32, target_size + frame_shape),
+  #         'target_action':
+  #             tf.placeholder(tf.float32, target_size + [ASIZE]),
+  #     }
+  #     # Creat model
+  #     forward_model_cls = registry.model(FLAGS.model)
+  #     forward_model = forward_model_cls(hparams, tf.estimator.ModeKeys.PREDICT)
+  #     forward_prediction_ops, _ = forward_model(forward_placeholders)
+  #     forward_saver = tf.train.Saver()
+  #     forward_saver.restore(forward_sess,
+  #                           homedir + '/out/model.ckpt-300000')
+  #     print('LOADED SV2P!')
+  #     sv2p_model = (forward_prediction_ops, forward_sess, forward_placeholders)
 
   
   all_dists = []

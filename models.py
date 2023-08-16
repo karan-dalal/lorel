@@ -9,7 +9,7 @@ import torchvision.transforms as T
 from transformers import AutoTokenizer, AutoModel, AutoConfig
 from torch.distributions.normal import Normal
 from torch.distributions.independent import Independent
-from LIV.liv import load_liv
+from LIV.liv import load_liv, load_clip
 
 
 class LangEncoder(nn.Module):
@@ -147,12 +147,17 @@ class Policy(nn.Module):
     # self.fc3 = nn.Linear(hidden_size, hidden_size)
     # self.fc4 = nn.Linear(hidden_size, act_size)
 
-    # NOTE: LIV encoder and policy architecture.
+    # NOTE: LIV /CLIP encoder and policy architecture.
     if representation == 'liv':
       self.liv = load_liv()
       self.liv.eval()
-    self.tokenize = clip.tokenize
+    elif representation == 'clip':
+      self.clip = load_clip()
+      self.clip.eval()
 
+    self.tokenize = clip.tokenize
+    
+    self.representation = representation
     self.fc1 = nn.Linear(2 * hidden_size, hidden_size)
     self.fc2 = nn.Linear(hidden_size, hidden_size)
     self.fc3 = nn.Linear(hidden_size, hidden_size)
@@ -164,11 +169,17 @@ class Policy(nn.Module):
     # lang_emb = self.senc(lang_goal)
     # enc = self.enc(obs)
 
+    lang_goal = self.tokenize(lang_goal)
+
     # NOTE: LIV encoder.
-    with torch.no_grad():
-      lang_goal = self.tokenize(lang_goal)
-      lang_emb = self.liv(input=lang_goal, modality="text")
-      enc = self.liv(input=obs, modality="vision")
+    if self.representation == 'liv':
+      with torch.no_grad():
+        lang_emb = self.liv(input=lang_goal, modality="text")
+        enc = self.liv(input=obs, modality="vision")
+    elif self.representation == 'clip':
+      with torch.no_grad():
+        lang_emb = self.clip(input=lang_goal, modality="text")
+        enc = self.clip(input=obs, modality="vision")
 
     # print("LIV Text Shape:", lang_emb.shape, lang_emb.dtype)
     # print("LIV Image Shape:", enc.shape, enc.dtype)

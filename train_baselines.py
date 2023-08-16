@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 FLAGS = flags.FLAGS
 flags.DEFINE_integer('batchsize', 32,
                      'Batch Size')
-flags.DEFINE_integer('num_labeled', 30000,
+flags.DEFINE_integer('num_labeled', 50000,
                      'How many episodes of data to use')
 flags.DEFINE_integer('trainsteps', 200000,
                      'Training Iterations')
@@ -61,7 +61,7 @@ flags.DEFINE_integer('sawyer', 0,
                      'Using sawyer data')
 flags.DEFINE_integer('scratch', 0,
                      'LM from scratch (not pretrained)')
-flags.DEFINE_float('lr', 0.001,
+flags.DEFINE_float('lr', 0.0005,
                      'learning rate')
 flags.DEFINE_string('wandb_entity', "ksdalal",
                     'Weights and Biases Entity')
@@ -186,8 +186,8 @@ def main(argv):
       p_act = p(train_ims_s1_batch, train_l_goals)
       ## BC MSE Loss
       bc_loss = ((p_act - train_pos_act)**2).mean(-1)
-      loss = (bc_loss).sum()
-      logs["Train BC Loss"] = loss.mean().cpu().detach().numpy()
+      loss = (bc_loss).mean()
+      logs["Train BC Loss"] = loss.cpu().detach().numpy()
     else:
       ## Sample Batches
       train_ims_0_batch, train_ims_s1_batch, train_ims_s2_batch, train_ims_g_batch = extract_ims(train_pos_pair)
@@ -260,8 +260,8 @@ def main(argv):
         with torch.no_grad():
           p_act = p(test_ims_s1_batch, test_l_goals)
           t_bc_loss = ((p_act - test_pos_act)**2).mean(-1)
-          t_loss = (t_bc_loss).sum()
-        logs["Test BC Loss"] = t_loss.mean().cpu().detach().numpy()
+          t_loss = (t_bc_loss).mean()
+        logs["Test BC Loss"] = t_loss.cpu().detach().numpy()
 
       times = np.array(times)
       print(f"{i} - Sampling time {times[:, 0].mean()}, Forward Pass {times[:, 1].mean()}, Backward Pass {times[:, 2].mean()}")
